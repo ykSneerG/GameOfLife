@@ -18,7 +18,7 @@
             <ColumnDefinition></ColumnDefinition>
         </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Column="0" Orientation="Vertical">
+        <StackPanel Grid.Column="0">
             
             <StackPanel Orientation="Horizontal">
                 <TextBox x:Name="ElemWidth" Text="20" Width="90"></TextBox>
