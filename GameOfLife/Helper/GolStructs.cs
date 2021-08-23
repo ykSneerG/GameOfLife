@@ -1,7 +1,7 @@
 ﻿namespace GameOfLife
 {
 
-    public enum Status { Life, Dead }
+    public enum Status { Life, Dead, Surround }
 
 
     public struct Coord2D

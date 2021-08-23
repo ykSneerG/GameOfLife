@@ -23,20 +23,74 @@ namespace GameOfLife
     public sealed partial class MainPage : Page
     {
 
-        private readonly SolidColorBrush ColorDead = new SolidColorBrush(Colors.LightGray);
-        private readonly SolidColorBrush ColorLife = new SolidColorBrush(Colors.OrangeRed);
+        private readonly SolidColorBrush ColorDead = new SolidColorBrush(Color.FromArgb(255, 210, 210, 210));
+        private readonly SolidColorBrush ColorSurround = new SolidColorBrush(Color.FromArgb(255, 190, 190, 190));
+        private readonly SolidColorBrush ColorLife = new SolidColorBrush(Colors.Red);
+        
 
         private readonly DispatcherTimer dispatcherTimer = new DispatcherTimer();
 
 
         private Coord2D Amount = new Coord2D();
 
-        SolidColorBrush[] fills = new SolidColorBrush[1];
-
-
 
         public Dictionary<Coord2D, Rectangle> Squares = new Dictionary<Coord2D, Rectangle>();
 
+        //private Dictionary<Coord2D, Status> Lcells = new Dictionary<Coord2D, Status>();
+        private Dictionary<Coord2D, Status> Scells = new Dictionary<Coord2D, Status>();
+
+        private Dictionary<Coord2D, Status> GenOld = new Dictionary<Coord2D, Status>();
+        //private Dictionary<Coord2D, Status> GenNew = new Dictionary<Coord2D, Status>();
+
+
+        #region Property: (Dictionary<Coord2D, Status>) Lcells
+
+        public Dictionary<Coord2D, Status> Lcells
+        {
+            get => (Dictionary<Coord2D, Status>)GetValue(LcellsProperty);
+            set => SetValue(LcellsProperty, value);
+        }
+
+        private static readonly DependencyProperty LcellsProperty =
+            DependencyProperty.Register(
+                nameof(Lcells),
+                typeof(Dictionary<Coord2D, Status>),
+                typeof(MainPage),
+                new PropertyMetadata(new Dictionary<Coord2D, Status>())
+                );
+
+        //private static void OnLcellsPropertyChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
+        //{
+        //    MainPage myUserControl = dependencyObject as MainPage;
+
+        //    myUserControl.LcellsChanged(e);
+        //}
+
+        //private void LcellsChanged(DependencyPropertyChangedEventArgs e)
+        //{
+        //    // if(Lcells.Count != 0)
+        //    LcellsCount = Lcells.Keys.Count();
+        //}
+
+        #endregion
+
+        #region Property: (int) LcellsCount
+
+        public int LcellsCount
+        {
+            get => (int)GetValue(LcellsCountProperty);
+            set => SetValue(LcellsCountProperty, value);
+        }
+
+        private static readonly DependencyProperty LcellsCountProperty =
+            DependencyProperty.Register(
+                nameof(LcellsCount),
+                typeof(int),
+                typeof(MainPage),
+                new PropertyMetadata(default)
+                );
+
+        #endregion
 
 
         #region Property: (int) Generation
@@ -86,8 +140,6 @@ namespace GameOfLife
 
         private void TimerTick(object sender, object e)
         {
-            Generation++;
-
             NextGeneration();
         }
 
@@ -108,7 +160,7 @@ namespace GameOfLife
 
             Amount.Y = (byte)(Playarea.ActualHeight / pxdistWidth);
 
-            Info = $"{Amount.X} x {Amount.Y}";
+            Info = $"Area: {Amount.X} x {Amount.Y} cells";
 
 
 
@@ -123,7 +175,7 @@ namespace GameOfLife
                         Fill = ColorDead
                     };
                     rect.PointerPressed += Rectangle_PointerPressed;
-                    rect.PointerMoved += Rectangle_PointerPressed;
+                    //rect.PointerMoved += Rectangle_PointerPressed;
 
                     Squares.Add(new Coord2D(x, y), rect);
 
@@ -133,21 +185,9 @@ namespace GameOfLife
                 }
             }
 
-            ElemTotal.Text = (Amount.X * Amount.Y).ToString();
+            ElemTotal.Text = "Total: " + (Amount.X * Amount.Y).ToString();
         }
 
-        private void BtnPlay_Click(object sender, RoutedEventArgs e)
-        {
-            if (dispatcherTimer.IsEnabled)
-            {
-                dispatcherTimer.Stop();
-
-            }
-            else
-            {
-                dispatcherTimer.Start();
-            }
-        }
 
         private void BtnClear_Click(object sender, RoutedEventArgs e)
         {
@@ -163,24 +203,50 @@ namespace GameOfLife
 
         private void BtnFill_Click(object sender, RoutedEventArgs e)
         {
-            ResizeArrayToDict(ref fills, Squares.Count);
 
-            for (int i = 0; i < Squares.Count; i++)
+            Generation = 0;
+
+            Lcells.Clear();
+            Scells.Clear();
+            GenOld.Clear();
+
+
+            Random random = new Random();
+
+            for (byte x = 0; x < Amount.X; x++)
             {
+                for (byte y = 0; y < Amount.Y; y++)
+                {
+                    int rand = random.Next(0, 9);
 
-                Random random = new Random();
-
-                int rand = random.Next(0, 8);
-
-                fills[i] = (rand <= 2) ? ColorLife : ColorDead;
+                    if (rand <= 2)
+                    {
+                        Squares[new Coord2D(x, y)].Fill = ColorLife;
+                    }
+                }
             }
 
+            NextGeneration();
+        }
 
-            for (int i = 0; i < Squares.Count; i++)
+
+        private void BtnPlay_Click(object sender, RoutedEventArgs e)
+        {
+            if (dispatcherTimer.IsEnabled)
             {
-                Squares.ElementAt(i).Value.Fill = fills[i];
+                dispatcherTimer.Stop();
+            }
+            else
+            {
+                dispatcherTimer.Start();
             }
         }
+
+        private void BtnNext_Click(object sender, RoutedEventArgs e)
+        {
+            NextGeneration();
+        }
+
 
 
         private void Rectangle_PointerPressed(object sender, PointerRoutedEventArgs e)
@@ -191,49 +257,115 @@ namespace GameOfLife
         }
 
 
-
-
         private void NextGeneration()
         {
-            Array.Resize(ref fills, Squares.Count);
-            //ResizeArrayToDict(ref fills, Squares.Count);
+            Generation++;
 
-            for (int i = 0; i < Squares.Count; i++)
+            // ####################
+
+            if (Lcells.Count == 0)
             {
-                int neighbour = 0;
-
-                Coord2D center = Squares.ElementAt(i).Key;
-
-                NeighbourStatus(ref neighbour, center, -1, -1);
-                NeighbourStatus(ref neighbour, center, 0, -1);
-                NeighbourStatus(ref neighbour, center, 1, -1);
-
-                NeighbourStatus(ref neighbour, center, -1, 0);
-                NeighbourStatus(ref neighbour, center, 1, 0);
-
-                NeighbourStatus(ref neighbour, center, -1, 1);
-                NeighbourStatus(ref neighbour, center, 0, 1);
-                NeighbourStatus(ref neighbour, center, 1, 1);
-
-
-
-                Rectangle recEntry = Squares.ElementAt(i).Value;
-
-                if (recEntry.Fill == ColorLife)
+                foreach(KeyValuePair<Coord2D, Rectangle> entry in Squares)
                 {
-                    fills[i] = neighbour < 2 || neighbour > 3 ? ColorDead : ColorLife;
+                    if(entry.Value.Fill == ColorLife)
+                    {
+                        _ = GenOld.TryAdd(entry.Key, Status.Life);
+                    }
+                    if (entry.Value.Fill == ColorSurround)
+                    {
+                        _ = GenOld.TryAdd(entry.Key, Status.Surround);
+                    }
                 }
 
-                if (recEntry.Fill == ColorDead)
+
+                Lcells.Clear();
+
+                for (int i = 0; i < Squares.Count; i++)
                 {
-                    fills[i] = neighbour == 3 ? ColorLife : ColorDead;
+                    NeighbourAnalyse(i);
                 }
             }
-            
-
-            for (int i = 0; i < Squares.Count; i++)
+            else
             {
-                Squares.ElementAt(i).Value.Fill = fills[i];
+                GenOld = MergeCells(Lcells, Scells);
+
+                Lcells.Clear();
+
+                for (int i = 0; i < GenOld.Count; i++)
+                {
+                    NeighbourAnalyse2(GenOld, i);
+                }
+            }
+
+            // ####################
+
+
+            FindSurroundingCells();
+
+            ColorizeGeneration();
+        }
+
+
+        private void NeighbourAnalyse(int i)
+        {
+            
+            int neighbour = 0;
+
+            Coord2D center = Squares.ElementAt(i).Key;
+
+            if (Lcells.ContainsKey(center))
+            {
+                return;
+            }
+
+            NeighbourStatus(ref neighbour, center, -1, -1);
+            NeighbourStatus(ref neighbour, center, 0, -1);
+            NeighbourStatus(ref neighbour, center, 1, -1);
+
+            NeighbourStatus(ref neighbour, center, -1, 0);
+            NeighbourStatus(ref neighbour, center, 1, 0);
+
+            NeighbourStatus(ref neighbour, center, -1, 1);
+            NeighbourStatus(ref neighbour, center, 0, 1);
+            NeighbourStatus(ref neighbour, center, 1, 1);
+
+
+            Rectangle recEntry = Squares.ElementAt(i).Value;
+
+            if (neighbour == 3 || (recEntry.Fill == ColorLife && neighbour == 2))
+            {
+                _ = Lcells.TryAdd(center, Status.Life);
+            }
+        }
+
+        private void NeighbourAnalyse2(Dictionary<Coord2D, Status> tmpLcells, int i)
+        {
+
+            int neighbour = 0;
+
+            Coord2D center = tmpLcells.ElementAt(i).Key;
+
+            if (Lcells.ContainsKey(center))
+            {
+                return;
+            }
+
+            NeighbourStatus(ref neighbour, center, -1, -1);
+            NeighbourStatus(ref neighbour, center, 0, -1);
+            NeighbourStatus(ref neighbour, center, 1, -1);
+
+            NeighbourStatus(ref neighbour, center, -1, 0);
+            NeighbourStatus(ref neighbour, center, 1, 0);
+
+            NeighbourStatus(ref neighbour, center, -1, 1);
+            NeighbourStatus(ref neighbour, center, 0, 1);
+            NeighbourStatus(ref neighbour, center, 1, 1);
+
+            _ = Squares.TryGetValue(center, out Rectangle recEntry);
+
+            if (neighbour == 3 || (recEntry.Fill == ColorLife && neighbour == 2))
+            {
+                _ = Lcells.TryAdd(center, Status.Life);
             }
         }
 
@@ -241,20 +373,106 @@ namespace GameOfLife
         private void NeighbourStatus(ref int neighbours, Coord2D center, sbyte nX, sbyte nY)
         {
             if (neighbours > 3)
+            {
                 return;
+            }
 
-            byte x = NeighbourCoordinate(center.X, nX, Amount.X);
+            Coord2D coord2D = NeighbourCell(Amount, center, nX, nY);
 
-            byte y = NeighbourCoordinate(center.Y, nY, Amount.Y);
-
-            _ = Squares.TryGetValue(new Coord2D(x, y), out Rectangle rec);
-
-            if (rec.Fill == ColorLife) 
+            if (Squares[coord2D].Fill == ColorLife)
             {
                 neighbours++;
             }
         }
 
+
+
+        private void FindSurroundingCells()
+        {
+            Scells.Clear();
+
+            foreach (KeyValuePair<Coord2D, Status> entry in Lcells)
+            {
+                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, -1, -1), Status.Surround);
+                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, 0, -1), Status.Surround);
+                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, 1, -1), Status.Surround);
+
+                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, -1, 0), Status.Surround);
+                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, 1, 0), Status.Surround);
+
+                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, -1, 1), Status.Surround);
+                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, 0, 1), Status.Surround);
+                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, 1, 1), Status.Surround);
+            }
+        }
+
+        private void ColorizeGeneration()
+        {
+
+            for (int i = 0; i < GenOld.Count; i++)
+            {
+                Squares[GenOld.ElementAt(i).Key].Fill = ColorDead;
+            }
+
+            GenOld.Clear();
+
+
+            //ElementLifeCount.Text = $"Life: {Lcells.Count()}";
+            LcellsCount = Lcells.Count();
+
+            Dictionary<Coord2D, Status> mergedCells = MergeCells(Lcells, Scells);
+
+            foreach (KeyValuePair<Coord2D, Status> entry in mergedCells)
+            {
+                Brush brush;
+
+                switch (entry.Value)
+                {
+                    case Status.Life:
+                        brush = ColorLife;
+                        break;
+                    case Status.Surround:
+                        brush = ColorSurround;
+                        break;
+                    default:
+                        brush = ColorDead;
+                        break;
+                }
+
+                Squares[entry.Key].Fill = brush;
+            }
+        }
+
+
+
+
+        private static Dictionary<Coord2D, Status> MergeCells(Dictionary<Coord2D, Status> lcells, Dictionary<Coord2D, Status> scells)
+        {
+
+            Dictionary<Coord2D, Status> mergedCells = new Dictionary<Coord2D, Status>();
+
+            foreach (KeyValuePair<Coord2D, Status> entry in lcells)
+            {
+                _ = mergedCells.TryAdd(entry.Key, entry.Value);
+            }
+
+            foreach (KeyValuePair<Coord2D, Status> entry in scells)
+            {
+                _ = mergedCells.TryAdd(entry.Key, entry.Value);
+            }
+
+            return mergedCells;
+        }
+
+        private static Coord2D NeighbourCell(Coord2D amount, Coord2D center, sbyte nX, sbyte nY)
+        {
+
+            byte x = NeighbourCoordinate(center.X, nX, amount.X);
+
+            byte y = NeighbourCoordinate(center.Y, nY, amount.Y);
+
+            return new Coord2D(x, y);
+        }
 
         private static byte NeighbourCoordinate(byte pt, sbyte dist, byte amount)
         {
@@ -271,14 +489,6 @@ namespace GameOfLife
             }
 
             return (byte)ptdist;
-        }
-
-        private static void ResizeArrayToDict(ref SolidColorBrush[] arr, int length)
-        {
-            if (arr.Length != length)
-            {
-                arr = new SolidColorBrush[length];
-            }
         }
 
 

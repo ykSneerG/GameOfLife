@@ -9,7 +9,7 @@
   <Identity
     Name="0b9bcece-b8d4-4609-93f0-fd832400d229"
     Publisher="CN=Makita"
-    Version="1.0.0.0" />
+    Version="1.0.1.0" />
 
   <mp:PhoneIdentity PhoneProductId="0b9bcece-b8d4-4609-93f0-fd832400d229" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
