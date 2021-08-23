@@ -5,7 +5,7 @@ Certainly, there are already various solutions for the implementation of the "Ga
   <img src="./docs/GameOfLife_04.png" alt="drawing" width="400"/>
 </kbd>
 
-## Who it works
+## How it works
 Run the application, set the cell width in pixel -> SET, FILL and than PLAY.
 You can also paint your own figures by clicking inside the playboard
 
