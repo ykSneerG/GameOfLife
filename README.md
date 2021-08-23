@@ -1,5 +1,5 @@
 # GameOfLife
 A Game of life version.
 
-![Image](./docs/GameOfLife_04.png)
+![Image](./docs/GameOfLife_04.png | width=400)
 
