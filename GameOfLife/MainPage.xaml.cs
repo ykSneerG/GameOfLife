@@ -36,11 +36,9 @@ namespace GameOfLife
 
         public Dictionary<Coord2D, Rectangle> Squares = new Dictionary<Coord2D, Rectangle>();
 
-        //private Dictionary<Coord2D, Status> Lcells = new Dictionary<Coord2D, Status>();
         private Dictionary<Coord2D, Status> Scells = new Dictionary<Coord2D, Status>();
 
         private Dictionary<Coord2D, Status> GenOld = new Dictionary<Coord2D, Status>();
-        //private Dictionary<Coord2D, Status> GenNew = new Dictionary<Coord2D, Status>();
 
 
         #region Property: (Dictionary<Coord2D, Status>) Lcells
@@ -59,20 +57,8 @@ namespace GameOfLife
                 new PropertyMetadata(new Dictionary<Coord2D, Status>())
                 );
 
-        //private static void OnLcellsPropertyChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
-        //{
-        //    MainPage myUserControl = dependencyObject as MainPage;
-
-        //    myUserControl.LcellsChanged(e);
-        //}
-
-        //private void LcellsChanged(DependencyPropertyChangedEventArgs e)
-        //{
-        //    // if(Lcells.Count != 0)
-        //    LcellsCount = Lcells.Keys.Count();
-        //}
-
         #endregion
+
 
         #region Property: (int) LcellsCount
 
@@ -86,6 +72,61 @@ namespace GameOfLife
             DependencyProperty.Register(
                 nameof(LcellsCount),
                 typeof(int),
+                typeof(MainPage),
+                new PropertyMetadata(default)
+                );
+
+        #endregion
+
+        #region Property: (int) LcellsPercent
+
+        public double LcellsPercent
+        {
+            get => (double)GetValue(LcellsPercentProperty);
+            set => SetValue(LcellsPercentProperty, value);
+        }
+
+        private static readonly DependencyProperty LcellsPercentProperty =
+            DependencyProperty.Register(
+                nameof(LcellsPercent),
+                typeof(double),
+                typeof(MainPage),
+                new PropertyMetadata(default)
+                );
+
+        #endregion
+
+
+        #region Property: (int) DcellsCount
+
+        public int DcellsCount
+        {
+            get => (int)GetValue(DcellsCountProperty);
+            set => SetValue(DcellsCountProperty, value);
+        }
+
+        private static readonly DependencyProperty DcellsCountProperty =
+            DependencyProperty.Register(
+                nameof(DcellsCount),
+                typeof(int),
+                typeof(MainPage),
+                new PropertyMetadata(default)
+                );
+
+        #endregion
+
+        #region Property: (int) DcellsPercent
+
+        public double DcellsPercent
+        {
+            get => (double)GetValue(DcellsPercentProperty);
+            set => SetValue(DcellsPercentProperty, value);
+        }
+
+        private static readonly DependencyProperty DcellsPercentProperty =
+            DependencyProperty.Register(
+                nameof(DcellsPercent),
+                typeof(double),
                 typeof(MainPage),
                 new PropertyMetadata(default)
                 );
@@ -143,6 +184,7 @@ namespace GameOfLife
             NextGeneration();
         }
 
+        #region BUTTON
 
         private void BtnSet_Click(object sender, RoutedEventArgs e)
         {
@@ -191,12 +233,7 @@ namespace GameOfLife
 
         private void BtnClear_Click(object sender, RoutedEventArgs e)
         {
-            foreach (KeyValuePair<Coord2D, Rectangle> entry in Squares)
-            {
-                _ = Squares.TryGetValue(entry.Key, out Rectangle rec);
-
-                rec.Fill = ColorDead;
-            }
+            SetDead(Squares.Keys.ToArray());
 
             Generation = 0;
         }
@@ -247,7 +284,7 @@ namespace GameOfLife
             NextGeneration();
         }
 
-
+        #endregion
 
         private void Rectangle_PointerPressed(object sender, PointerRoutedEventArgs e)
         {
@@ -255,6 +292,7 @@ namespace GameOfLife
 
             rect.Fill = (rect.Fill == ColorDead) ? ColorLife : ColorDead;
         }
+
 
 
         private void NextGeneration()
@@ -276,29 +314,24 @@ namespace GameOfLife
                         _ = GenOld.TryAdd(entry.Key, Status.Surround);
                     }
                 }
-
-
-                Lcells.Clear();
-
-                for (int i = 0; i < Squares.Count; i++)
-                {
-                    NeighbourAnalyse(i);
-                }
             }
             else
             {
-                GenOld = MergeCells(Lcells, Scells);
-
-                Lcells.Clear();
-
-                for (int i = 0; i < GenOld.Count; i++)
-                {
-                    NeighbourAnalyse2(GenOld, i);
-                }
+                GenOld = MergeLeft(Lcells, Scells);
             }
-
+            
             // ####################
 
+
+            Lcells.Clear();
+
+            for (int i = 0; i < GenOld.Count; i++)
+            {
+                Coord2D center = GenOld.ElementAt(i).Key;
+
+                NeighbourAnalyse(center);
+            }
+           
 
             FindSurroundingCells();
 
@@ -306,17 +339,15 @@ namespace GameOfLife
         }
 
 
-        private void NeighbourAnalyse(int i)
+        private void NeighbourAnalyse(Coord2D center)
         {
-            
-            int neighbour = 0;
-
-            Coord2D center = Squares.ElementAt(i).Key;
 
             if (Lcells.ContainsKey(center))
             {
                 return;
             }
+
+            int neighbour = 0;
 
             NeighbourStatus(ref neighbour, center, -1, -1);
             NeighbourStatus(ref neighbour, center, 0, -1);
@@ -330,45 +361,11 @@ namespace GameOfLife
             NeighbourStatus(ref neighbour, center, 1, 1);
 
 
-            Rectangle recEntry = Squares.ElementAt(i).Value;
-
-            if (neighbour == 3 || (recEntry.Fill == ColorLife && neighbour == 2))
+            if (neighbour == 3 || (Squares[center].Fill == ColorLife && neighbour == 2))
             {
                 _ = Lcells.TryAdd(center, Status.Life);
             }
         }
-
-        private void NeighbourAnalyse2(Dictionary<Coord2D, Status> tmpLcells, int i)
-        {
-
-            int neighbour = 0;
-
-            Coord2D center = tmpLcells.ElementAt(i).Key;
-
-            if (Lcells.ContainsKey(center))
-            {
-                return;
-            }
-
-            NeighbourStatus(ref neighbour, center, -1, -1);
-            NeighbourStatus(ref neighbour, center, 0, -1);
-            NeighbourStatus(ref neighbour, center, 1, -1);
-
-            NeighbourStatus(ref neighbour, center, -1, 0);
-            NeighbourStatus(ref neighbour, center, 1, 0);
-
-            NeighbourStatus(ref neighbour, center, -1, 1);
-            NeighbourStatus(ref neighbour, center, 0, 1);
-            NeighbourStatus(ref neighbour, center, 1, 1);
-
-            _ = Squares.TryGetValue(center, out Rectangle recEntry);
-
-            if (neighbour == 3 || (recEntry.Fill == ColorLife && neighbour == 2))
-            {
-                _ = Lcells.TryAdd(center, Status.Life);
-            }
-        }
-
 
         private void NeighbourStatus(ref int neighbours, Coord2D center, sbyte nX, sbyte nY)
         {
@@ -409,18 +406,25 @@ namespace GameOfLife
         private void ColorizeGeneration()
         {
 
-            for (int i = 0; i < GenOld.Count; i++)
-            {
-                Squares[GenOld.ElementAt(i).Key].Fill = ColorDead;
-            }
-
-            GenOld.Clear();
+            SetDead(GenOld.Keys.ToArray());
 
 
-            //ElementLifeCount.Text = $"Life: {Lcells.Count()}";
+            #region INFORMATION update
+
+            int amount = Amount.X * Amount.Y;
+
             LcellsCount = Lcells.Count();
 
-            Dictionary<Coord2D, Status> mergedCells = MergeCells(Lcells, Scells);
+            LcellsPercent = Math.Round(LcellsCount / (double)amount * 100, 1);
+
+            DcellsCount = amount - LcellsCount;
+
+            DcellsPercent = Math.Round(DcellsCount / (double)amount * 100, 1);
+
+            #endregion
+
+
+            Dictionary<Coord2D, Status> mergedCells = MergeLeft(Lcells, Scells);
 
             foreach (KeyValuePair<Coord2D, Status> entry in mergedCells)
             {
@@ -445,23 +449,21 @@ namespace GameOfLife
 
 
 
-
-        private static Dictionary<Coord2D, Status> MergeCells(Dictionary<Coord2D, Status> lcells, Dictionary<Coord2D, Status> scells)
+        private static Dictionary<TKey, TValue> MergeLeft<TKey, TValue>(params Dictionary<TKey, TValue>[] dicts)
         {
 
-            Dictionary<Coord2D, Status> mergedCells = new Dictionary<Coord2D, Status>();
+            Dictionary<TKey, TValue> mergedDict = new Dictionary<TKey, TValue>();
 
-            foreach (KeyValuePair<Coord2D, Status> entry in lcells)
+            for (int i = 0; i < dicts.Length; i++)
             {
-                _ = mergedCells.TryAdd(entry.Key, entry.Value);
+
+                foreach (KeyValuePair<TKey, TValue> entry in dicts[i])
+                {
+                    _ = mergedDict.TryAdd(entry.Key, entry.Value);
+                }
             }
 
-            foreach (KeyValuePair<Coord2D, Status> entry in scells)
-            {
-                _ = mergedCells.TryAdd(entry.Key, entry.Value);
-            }
-
-            return mergedCells;
+            return mergedDict;
         }
 
         private static Coord2D NeighbourCell(Coord2D amount, Coord2D center, sbyte nX, sbyte nY)
@@ -491,6 +493,16 @@ namespace GameOfLife
             return (byte)ptdist;
         }
 
+
+        private void SetDead(IEnumerable<Coord2D> collection)
+        {
+            foreach (Coord2D entry in collection)
+            {
+                _ = Squares.TryGetValue(entry, out Rectangle rec);
+
+                rec.Fill = ColorDead;
+            }
+        }
 
     }
 }
