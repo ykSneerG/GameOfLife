@@ -317,7 +317,7 @@ namespace GameOfLife
             }
             else
             {
-                GenOld = MergeLeft(Lcells, Scells);
+                GenOld = GolHelper.MergeLeft(Lcells, Scells);
             }
             
             // ####################
@@ -325,11 +325,9 @@ namespace GameOfLife
 
             Lcells.Clear();
 
-            for (int i = 0; i < GenOld.Count; i++)
+            foreach (Coord2D coord2D in GenOld.Keys)
             {
-                Coord2D center = GenOld.ElementAt(i).Key;
-
-                NeighbourAnalyse(center);
+                NeighbourAnalyse(coord2D);
             }
            
 
@@ -349,16 +347,22 @@ namespace GameOfLife
 
             int neighbour = 0;
 
-            NeighbourStatus(ref neighbour, center, -1, -1);
-            NeighbourStatus(ref neighbour, center, 0, -1);
-            NeighbourStatus(ref neighbour, center, 1, -1);
+            foreach(Tuple<sbyte, sbyte> entry in GolHelper.NextCells)
+            {
 
-            NeighbourStatus(ref neighbour, center, -1, 0);
-            NeighbourStatus(ref neighbour, center, 1, 0);
+                if (neighbour > 3)
+                {
+                    break;
+                }
 
-            NeighbourStatus(ref neighbour, center, -1, 1);
-            NeighbourStatus(ref neighbour, center, 0, 1);
-            NeighbourStatus(ref neighbour, center, 1, 1);
+
+                Coord2D coord2D = NeighbourCell(Amount, center, entry.Item1, entry.Item2);
+
+                if (Squares[coord2D].Fill == ColorLife)
+                {
+                    neighbour++;
+                }
+            }
 
 
             if (neighbour == 3 || (Squares[center].Fill == ColorLife && neighbour == 2))
@@ -367,39 +371,21 @@ namespace GameOfLife
             }
         }
 
-        private void NeighbourStatus(ref int neighbours, Coord2D center, sbyte nX, sbyte nY)
-        {
-            if (neighbours > 3)
-            {
-                return;
-            }
-
-            Coord2D coord2D = NeighbourCell(Amount, center, nX, nY);
-
-            if (Squares[coord2D].Fill == ColorLife)
-            {
-                neighbours++;
-            }
-        }
-
-
 
         private void FindSurroundingCells()
         {
+
             Scells.Clear();
 
-            foreach (KeyValuePair<Coord2D, Status> entry in Lcells)
+            foreach (Coord2D center in Lcells.Keys)
             {
-                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, -1, -1), Status.Surround);
-                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, 0, -1), Status.Surround);
-                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, 1, -1), Status.Surround);
-
-                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, -1, 0), Status.Surround);
-                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, 1, 0), Status.Surround);
-
-                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, -1, 1), Status.Surround);
-                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, 0, 1), Status.Surround);
-                _ = Scells.TryAdd(NeighbourCell(Amount, entry.Key, 1, 1), Status.Surround);
+                foreach (Tuple<sbyte, sbyte> nx in GolHelper.NextCells)
+                {
+                    _ = Scells.TryAdd(
+                            NeighbourCell(Amount, center, nx.Item1, nx.Item2), 
+                            Status.Surround
+                            );
+                }
             }
         }
 
@@ -424,7 +410,7 @@ namespace GameOfLife
             #endregion
 
 
-            Dictionary<Coord2D, Status> mergedCells = MergeLeft(Lcells, Scells);
+            Dictionary<Coord2D, Status> mergedCells = GolHelper.MergeLeft(Lcells, Scells);
 
             foreach (KeyValuePair<Coord2D, Status> entry in mergedCells)
             {
@@ -449,22 +435,7 @@ namespace GameOfLife
 
 
 
-        private static Dictionary<TKey, TValue> MergeLeft<TKey, TValue>(params Dictionary<TKey, TValue>[] dicts)
-        {
 
-            Dictionary<TKey, TValue> mergedDict = new Dictionary<TKey, TValue>();
-
-            for (int i = 0; i < dicts.Length; i++)
-            {
-
-                foreach (KeyValuePair<TKey, TValue> entry in dicts[i])
-                {
-                    _ = mergedDict.TryAdd(entry.Key, entry.Value);
-                }
-            }
-
-            return mergedDict;
-        }
 
         private static Coord2D NeighbourCell(Coord2D amount, Coord2D center, sbyte nX, sbyte nY)
         {
