@@ -336,6 +336,7 @@ namespace GameOfLife
                 return;
             }
 
+
             int neighbour = 0;
 
             foreach(Tuple<sbyte, sbyte> entry in GolHelper.NextCells)
