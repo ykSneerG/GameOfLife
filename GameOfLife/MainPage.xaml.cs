@@ -29,9 +29,10 @@ namespace GameOfLife
 
         public Dictionary<Coord2D, Rectangle> Squares = new Dictionary<Coord2D, Rectangle>();
 
-        private Dictionary<Coord2D, Status> Scells = new Dictionary<Coord2D, Status>();
 
         private Dictionary<Coord2D, Status> GenOld = new Dictionary<Coord2D, Status>();
+
+        private Dictionary<Coord2D, Status>[] GenMinus = new Dictionary<Coord2D, Status>[3];
 
 
         #region Property: (Dictionary<Coord2D, Status>) Lcells
@@ -51,7 +52,6 @@ namespace GameOfLife
                 );
 
         #endregion
-
 
         #region Property: (int) LcellsCount
 
@@ -82,6 +82,61 @@ namespace GameOfLife
         private static readonly DependencyProperty LcellsPercentProperty =
             DependencyProperty.Register(
                 nameof(LcellsPercent),
+                typeof(double),
+                typeof(MainPage),
+                new PropertyMetadata(default)
+                );
+
+        #endregion
+
+
+        #region Property: (Dictionary<Coord2D, Status>) Lcells
+
+        public Dictionary<Coord2D, Status> Scells
+        {
+            get => (Dictionary<Coord2D, Status>)GetValue(ScellsProperty);
+            set => SetValue(ScellsProperty, value);
+        }
+
+        private static readonly DependencyProperty ScellsProperty =
+            DependencyProperty.Register(
+                nameof(Scells),
+                typeof(Dictionary<Coord2D, Status>),
+                typeof(MainPage),
+                new PropertyMetadata(new Dictionary<Coord2D, Status>())
+                );
+
+        #endregion
+
+        #region Property: (int) ScellsCount
+
+        public int ScellsCount
+        {
+            get => (int)GetValue(ScellsCountProperty);
+            set => SetValue(ScellsCountProperty, value);
+        }
+
+        private static readonly DependencyProperty ScellsCountProperty =
+            DependencyProperty.Register(
+                nameof(ScellsCount),
+                typeof(int),
+                typeof(MainPage),
+                new PropertyMetadata(default)
+                );
+
+        #endregion
+
+        #region Property: (int) ScellsPercent
+
+        public double ScellsPercent
+        {
+            get => (double)GetValue(ScellsPercentProperty);
+            set => SetValue(ScellsPercentProperty, value);
+        }
+
+        private static readonly DependencyProperty ScellsPercentProperty =
+            DependencyProperty.Register(
+                nameof(ScellsPercent),
                 typeof(double),
                 typeof(MainPage),
                 new PropertyMetadata(default)
@@ -170,6 +225,11 @@ namespace GameOfLife
 
             dispatcherTimer.Interval = TimeSpan.FromMilliseconds(5);
             dispatcherTimer.Tick += TimerTick;
+
+            for (int i = 0; i < GenMinus.Length; i++)
+            {
+                GenMinus[i] = new Dictionary<Coord2D, Status>();
+            }
         }
 
         private void TimerTick(object sender, object e)
@@ -238,7 +298,6 @@ namespace GameOfLife
 
             Lcells.Clear();
             Scells.Clear();
-            GenOld.Clear();
 
 
             Random random = new Random();
@@ -290,14 +349,18 @@ namespace GameOfLife
 
         private void NextGeneration()
         {
+
             Generation++;
 
 
             if (Lcells.Count == 0)
             {
-                foreach(KeyValuePair<Coord2D, Rectangle> entry in Squares)
+
+                GenOld.Clear();
+
+                foreach (KeyValuePair<Coord2D, Rectangle> entry in Squares)
                 {
-                    if(entry.Value.Fill == ColorLife)
+                    if (entry.Value.Fill == ColorLife)
                     {
                         _ = GenOld.TryAdd(entry.Key, Status.Life);
                     }
@@ -313,31 +376,44 @@ namespace GameOfLife
             }
             
 
+            RecordGenerationAndSTop();
 
-            Lcells.Clear();
 
-            foreach (Coord2D coord2D in GenOld.Keys)
-            {
-                NeighbourAnalyse(coord2D);
-            }
-           
+            FindLivingCells(GenOld.Keys);
 
             FindSurroundingCells();
+
 
             ColorizeGeneration();
         }
 
 
-        private void NeighbourAnalyse(Coord2D center)
+        private void FindLivingCells(IEnumerable<Coord2D> coord2Ds)
         {
 
-            if (Lcells.ContainsKey(center))
-            {
-                return;
-            }
+            Lcells.Clear();
 
+            foreach (Coord2D coord2D in coord2Ds)
+            {
+                if (Lcells.ContainsKey(coord2D))
+                {
+                    continue;
+                }
+
+                if (IsCellAlive(coord2D))
+                {
+                    _ = Lcells.TryAdd(coord2D, Status.Life);
+                }
+            }
+        }
+
+        private bool IsCellAlive(Coord2D center)
+        {
+
+            bool alive = false;
 
             int neighbour = 0;
+
 
             foreach(Tuple<sbyte, sbyte> entry in GolHelper.NextCells)
             {
@@ -359,8 +435,10 @@ namespace GameOfLife
 
             if (neighbour == 3 || (Squares[center].Fill == ColorLife && neighbour == 2))
             {
-                _ = Lcells.TryAdd(center, Status.Life);
+                alive = true;
             }
+
+            return alive;
         }
 
         private void FindSurroundingCells()
@@ -373,17 +451,32 @@ namespace GameOfLife
                 foreach (Tuple<sbyte, sbyte> nx in GolHelper.NextCells)
                 {
                     _ = Scells.TryAdd(
-                            NeighbourCell(Amount, center, nx.Item1, nx.Item2), 
+                            NeighbourCell(Amount, center, nx.Item1, nx.Item2),
                             Status.Surround
                             );
                 }
             }
         }
 
+
         private void ColorizeGeneration()
         {
 
             SetDead(GenOld.Keys.ToArray());
+
+
+            Dictionary<Coord2D, Status> mergedCells = GolHelper.MergeLeft(Lcells, Scells);
+
+            foreach (KeyValuePair<Coord2D, Status> entry in mergedCells)
+            {
+                
+                Brush brush = GetBrushFromStatus(entry.Value);
+
+                if (Squares[entry.Key].Fill != brush)
+                {
+                    Squares[entry.Key].Fill = brush;
+                }
+            }
 
 
             #region INFORMATION update
@@ -398,30 +491,11 @@ namespace GameOfLife
 
             DcellsPercent = Math.Round(DcellsCount / (double)amount * 100, 1);
 
+            ScellsCount = mergedCells.Count(x => x.Value == Status.Surround);
+
+            ScellsPercent = Math.Round(ScellsCount / (double)amount * 100, 1);
+
             #endregion
-
-
-            Dictionary<Coord2D, Status> mergedCells = GolHelper.MergeLeft(Lcells, Scells);
-
-            foreach (KeyValuePair<Coord2D, Status> entry in mergedCells)
-            {
-                Brush brush;
-
-                switch (entry.Value)
-                {
-                    case Status.Life:
-                        brush = ColorLife;
-                        break;
-                    case Status.Surround:
-                        brush = ColorSurround;
-                        break;
-                    default:
-                        brush = ColorDead;
-                        break;
-                }
-
-                Squares[entry.Key].Fill = brush;
-            }
         }
 
 
@@ -462,6 +536,72 @@ namespace GameOfLife
                 rec.Fill = ColorDead;
             }
         }
+
+        private void RecordGenerationAndSTop()
+        {
+
+            for (int i = GenMinus.Length - 1; i > 0; i--)
+            {
+
+                GenMinus[i].Clear();
+
+                foreach (KeyValuePair<Coord2D, Status> entry in GenMinus[i - 1])
+                {
+                    GenMinus[i].Add(entry.Key, entry.Value);
+                }
+            }
+
+
+            GenMinus[0].Clear();
+
+            foreach (KeyValuePair<Coord2D, Status> entry in GenOld)
+            {
+                GenMinus[0].Add(entry.Key, entry.Value);
+            }
+
+
+            if (GenMinus[2].SequenceEqual(GenMinus[0]))
+            {
+                dispatcherTimer.Stop();
+            }
+
+
+        }
+
+
+        private Brush GetBrushFromStatus(Status status)
+        {
+            //Brush brush;
+
+            //switch (status)
+            //{
+            //    case Status.Life:
+            //        brush = ColorLife;
+            //        break;
+            //    case Status.Surround:
+            //        brush = ColorSurround;
+            //        break;
+            //    default:
+            //        brush = ColorDead;
+            //        break;
+            //}
+
+            //return brush;
+
+            switch (status)
+            {
+                case Status.Life:
+                    return ColorLife;
+                case Status.Surround:
+                    return ColorSurround;
+                case Status.Dead:
+                    return ColorDead;
+                default:
+                    return ColorDead;
+            }
+
+        }
+
 
     }
 }

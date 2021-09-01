@@ -69,19 +69,30 @@
                     <RowDefinition></RowDefinition>
                     <RowDefinition></RowDefinition>
                     <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition Height="15"></RowDefinition>
+                    <RowDefinition></RowDefinition>
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Background="Black" Height="25">
                     <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold">Information</TextBlock>
                 </Grid>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Life" FontSize="14" Margin="0,0,10,0"/>
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ElementName=Golpage, Path=LcellsCount, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, FallbackValue=0}" FontSize="14" HorizontalAlignment="Right"/>
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ElementName=Golpage, Path=LcellsPercent, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, FallbackValue=0.0}" FontSize="14" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Status" FontSize="12" Margin="0,0,10,0" Foreground="Gray"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="Count" FontSize="12" HorizontalAlignment="Right" Foreground="Gray"/>
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="%" FontSize="12" HorizontalAlignment="Right" Foreground="Gray"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Dead" FontSize="14" Margin="0,0,10,0"/>
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ElementName=Golpage, Path=DcellsCount, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, FallbackValue=0}" FontSize="14" HorizontalAlignment="Right"/>
-                <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding ElementName=Golpage, Path=DcellsPercent, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, FallbackValue=0.0}" FontSize="14" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Life" FontSize="14" Margin="0,0,10,0"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ElementName=Golpage, Path=LcellsCount, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, FallbackValue=0}" FontSize="14" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding ElementName=Golpage, Path=LcellsPercent, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, FallbackValue=0.0}" FontSize="14" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Dead" FontSize="14" Margin="0,0,10,0"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ElementName=Golpage, Path=DcellsCount, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, FallbackValue=0}" FontSize="14" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding ElementName=Golpage, Path=DcellsPercent, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, FallbackValue=0.0}" FontSize="14" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="Edge" FontSize="14" Margin="0,0,10,0"/>
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding ElementName=Golpage, Path=ScellsCount, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, FallbackValue=0}" FontSize="14" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Row="5" Grid.Column="2" Text="{Binding ElementName=Golpage, Path=ScellsPercent, UpdateSourceTrigger=PropertyChanged, Mode=OneWay, FallbackValue=0.0}" FontSize="14" HorizontalAlignment="Right"/>
 
             </Grid>
 
