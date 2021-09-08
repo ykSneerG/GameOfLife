@@ -18,21 +18,13 @@ namespace GameOfLife
             X = x;
             Y = y;
         }
+
+        public Coord2D(int x, int y)
+        {
+            X = (byte)x;
+            Y = (byte)y;
+        }
     }
-
-
-    //public struct Coord2D
-    //{
-    //    public byte X;
-
-    //    public byte Y;
-
-    //    public Coord2D(byte x, byte y)
-    //    {
-    //        X = x;
-    //        Y = y;
-    //    }
-    //}
 
 
     public static class GolHelper
@@ -66,6 +58,22 @@ namespace GameOfLife
             }
 
             return mergedDict;
+        }
+
+        public static void Record<TKey, TValue>(ref Dictionary<TKey, TValue>[] records, Dictionary<TKey, TValue> start)
+        {
+
+            for (int i = records.Length - 1; i >= 0; i--)
+            {
+                records[i].Clear();
+
+                Dictionary<TKey, TValue> dictTemp = (i == 0) ? start : records[i - 1];
+
+                foreach (KeyValuePair<TKey, TValue> entry in dictTemp)
+                {
+                    records[i].Add(entry.Key, entry.Value);
+                }
+            }
         }
     }
 

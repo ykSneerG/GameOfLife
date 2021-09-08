@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.UI;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
@@ -16,21 +15,20 @@ namespace GameOfLife
     public sealed partial class MainPage : Page
     {
 
-        private readonly SolidColorBrush ColorDead = new SolidColorBrush(Color.FromArgb(255, 210, 210, 210));
-        private readonly SolidColorBrush ColorSurround = new SolidColorBrush(Color.FromArgb(255, 190, 190, 190));
-        private readonly SolidColorBrush ColorLife = new SolidColorBrush(Colors.Red);
-        
+        private static Brush ColorLifeStable { get; set; } = new SolidColorBrush();
+        private static Brush ColorSurround { get; set; } = new SolidColorBrush();
+
 
         private readonly DispatcherTimer dispatcherTimer = new DispatcherTimer();
 
 
-        private Coord2D Amount = new Coord2D();
+        //private Coord2D Amount = new Coord2D();
+        private GolBoard Board = new GolBoard();
 
 
         public Dictionary<Coord2D, Rectangle> Squares = new Dictionary<Coord2D, Rectangle>();
 
-
-        private Dictionary<Coord2D, Status> GenOld = new Dictionary<Coord2D, Status>();
+        private Dictionary<Coord2D, Status> GenStart = new Dictionary<Coord2D, Status>();
 
         private Dictionary<Coord2D, Status>[] GenMinus = new Dictionary<Coord2D, Status>[3];
 
@@ -230,6 +228,9 @@ namespace GameOfLife
             {
                 GenMinus[i] = new Dictionary<Coord2D, Status>();
             }
+
+            ColorLifeStable = GolBrush.Life;
+            ColorSurround = GolBrush.Dead;
         }
 
         private void TimerTick(object sender, object e)
@@ -237,7 +238,7 @@ namespace GameOfLife
             NextGeneration();
         }
 
-        #region BUTTON
+        #region UI: BUTTON
 
         private void BtnSet_Click(object sender, RoutedEventArgs e)
         {
@@ -251,23 +252,27 @@ namespace GameOfLife
             _ = int.TryParse(ElemWidth.Text, out int pxWidth);
             double pxdistWidth = pxWidth + distance; ;
 
-            Amount.X = (byte)(Playarea.ActualWidth / pxdistWidth);
+            Board.SetBoardWidth((byte)(Playarea.ActualWidth / pxdistWidth));
+            Board.SetBoardHeight((byte)(Playarea.ActualHeight / pxdistWidth));
 
-            Amount.Y = (byte)(Playarea.ActualHeight / pxdistWidth);
+            //Board.Amount = new Coord2D(
+            //    (byte)(Playarea.ActualWidth / pxdistWidth),
+            //    (byte)(Playarea.ActualHeight / pxdistWidth)
+            //    );
 
-            Info = $"Area: {Amount.X} x {Amount.Y} cells";
+
+            Info = $"Area: {Board.AmountOfCells} cells";
 
 
-
-            for (byte x = 0; x < Amount.X; x++)
+            for (byte x = 0; x < Board.Amount.X; x++)
             {
-                for (byte y = 0; y < Amount.Y; y++)
+                for (byte y = 0; y < Board.Amount.Y; y++)
                 {
                     Rectangle rect = new Rectangle()
                     {
                         Width = pxWidth,
                         Height = pxWidth,
-                        Fill = ColorDead
+                        Fill = GolBrush.Dead
                     };
                     rect.PointerPressed += Rectangle_PointerPressed;
                     //rect.PointerMoved += Rectangle_PointerPressed;
@@ -280,7 +285,7 @@ namespace GameOfLife
                 }
             }
 
-            ElemTotal.Text = "Total: " + (Amount.X * Amount.Y).ToString();
+            ElemTotal.Text = $"Total: {Board.AmountOfCells}";
         }
 
 
@@ -300,20 +305,13 @@ namespace GameOfLife
             Scells.Clear();
 
 
-            Random random = new Random();
+            IEnumerable<Coord2D> coord2Ds = Board.RandomCells(percentSlider.Value);
 
-            for (byte x = 0; x < Amount.X; x++)
+            foreach (Coord2D entry in coord2Ds)
             {
-                for (byte y = 0; y < Amount.Y; y++)
-                {
-                    int rand = random.Next(0, 9);
-
-                    if (rand <= 2)
-                    {
-                        Squares[new Coord2D(x, y)].Fill = ColorLife;
-                    }
-                }
+                Squares[entry].Fill = GolBrush.Life;
             }
+
 
             NextGeneration();
         }
@@ -338,13 +336,44 @@ namespace GameOfLife
 
         #endregion
 
+        #region UI: TOGGLE_SWITCH
+
+        private void ToggleSwitchStable_Toggled(object sender, RoutedEventArgs e)
+        {
+            ToggleSwitch toggleSwitch = sender as ToggleSwitch;
+
+            dispatcherTimer.Stop();
+
+
+            foreach (var entry in Squares)
+            {
+                if (Squares[entry.Key].Fill == GolBrush.Stable)
+                {
+                    Squares[entry.Key].Fill = GolBrush.Life;
+                }
+            }
+
+            dispatcherTimer.Start();
+
+            ColorLifeStable = toggleSwitch.IsOn ? GolBrush.Stable : GolBrush.Life;
+        }
+
+        private void ToggleSwitchSurround_Toggled(object sender, RoutedEventArgs e)
+        {
+            ToggleSwitch toggleSwitch = sender as ToggleSwitch;
+
+            ColorSurround = toggleSwitch.IsOn ? GolBrush.Next : GolBrush.Dead;
+        }
+
+
         private void Rectangle_PointerPressed(object sender, PointerRoutedEventArgs e)
         {
             Rectangle rect = sender as Rectangle;
 
-            rect.Fill = (rect.Fill == ColorDead) ? ColorLife : ColorDead;
+            rect.Fill = (rect.Fill == GolBrush.Dead) ? GolBrush.Life : GolBrush.Dead;
         }
 
+        #endregion
 
 
         private void NextGeneration()
@@ -356,53 +385,55 @@ namespace GameOfLife
             if (Lcells.Count == 0)
             {
 
-                GenOld.Clear();
+                GenStart.Clear();
 
                 foreach (KeyValuePair<Coord2D, Rectangle> entry in Squares)
                 {
-                    if (entry.Value.Fill == ColorLife)
+                    if (entry.Value.Fill == GolBrush.Life || entry.Value.Fill == ColorLifeStable)
                     {
-                        _ = GenOld.TryAdd(entry.Key, Status.Life);
+                        _ = GenStart.TryAdd(entry.Key, Status.Life);
                     }
                     if (entry.Value.Fill == ColorSurround)
                     {
-                        _ = GenOld.TryAdd(entry.Key, Status.Surround);
+                        _ = GenStart.TryAdd(entry.Key, Status.Surround);
                     }
                 }
             }
             else
             {
-                GenOld = GolHelper.MergeLeft(Lcells, Scells);
+                GenStart = GolHelper.MergeLeft(Lcells, Scells);
             }
             
 
-            RecordGenerationAndSTop();
+            GolHelper.Record(ref GenMinus, GenStart);
+
+            GenerationStop(GenMinus, dispatcherTimer);
 
 
-            FindLivingCells(GenOld.Keys);
+            FindLivingCells(Lcells, GenStart.Keys);
 
-            FindSurroundingCells();
+            FindSurroundingCells(Scells, Lcells.Keys);
 
 
             ColorizeGeneration();
         }
 
 
-        private void FindLivingCells(IEnumerable<Coord2D> coord2Ds)
+        private void FindLivingCells(Dictionary<Coord2D, Status> alive, IEnumerable<Coord2D> coord2Ds)
         {
 
-            Lcells.Clear();
+            alive.Clear();
 
             foreach (Coord2D coord2D in coord2Ds)
             {
-                if (Lcells.ContainsKey(coord2D))
+                if (alive.ContainsKey(coord2D))
                 {
                     continue;
                 }
 
                 if (IsCellAlive(coord2D))
                 {
-                    _ = Lcells.TryAdd(coord2D, Status.Life);
+                    _ = alive.TryAdd(coord2D, Status.Life);
                 }
             }
         }
@@ -424,16 +455,16 @@ namespace GameOfLife
                 }
 
 
-                Coord2D coord2D = NeighbourCell(Amount, center, entry.Item1, entry.Item2);
+                Coord2D coord2D = NeighbourCell(Board.Amount, center, entry.Item1, entry.Item2);
 
-                if (Squares[coord2D].Fill == ColorLife)
+                if (Squares[coord2D].Fill == GolBrush.Life || Squares[coord2D].Fill == ColorLifeStable)
                 {
                     neighbour++;
                 }
             }
 
 
-            if (neighbour == 3 || (Squares[center].Fill == ColorLife && neighbour == 2))
+            if (neighbour == 3 || (Squares[center].Fill == GolBrush.Life && neighbour == 2) || (Squares[center].Fill == ColorLifeStable && neighbour == 2))
             {
                 alive = true;
             }
@@ -441,17 +472,17 @@ namespace GameOfLife
             return alive;
         }
 
-        private void FindSurroundingCells()
+        private void FindSurroundingCells(Dictionary<Coord2D, Status> surround, IEnumerable<Coord2D> coord2Ds)
         {
 
-            Scells.Clear();
+            surround.Clear();
 
-            foreach (Coord2D center in Lcells.Keys)
+            foreach (Coord2D center in coord2Ds)
             {
                 foreach (Tuple<sbyte, sbyte> nx in GolHelper.NextCells)
                 {
-                    _ = Scells.TryAdd(
-                            NeighbourCell(Amount, center, nx.Item1, nx.Item2),
+                    _ = surround.TryAdd(
+                            NeighbourCell(Board.Amount, center, nx.Item1, nx.Item2),
                             Status.Surround
                             );
                 }
@@ -462,7 +493,7 @@ namespace GameOfLife
         private void ColorizeGeneration()
         {
 
-            SetDead(GenOld.Keys.ToArray());
+            SetDead(GenStart.Keys.ToArray());
 
 
             Dictionary<Coord2D, Status> mergedCells = GolHelper.MergeLeft(Lcells, Scells);
@@ -472,7 +503,18 @@ namespace GameOfLife
                 
                 Brush brush = GetBrushFromStatus(entry.Value);
 
-                if (Squares[entry.Key].Fill != brush)
+                //if (Squares[entry.Key].Fill != brush)
+                //{
+                //    Squares[entry.Key].Fill = brush;
+                //}
+
+                _ = GenStart.TryGetValue(entry.Key, out Status statusOld);
+
+                if (statusOld == entry.Value && entry.Value == Status.Life)
+                {
+                    Squares[entry.Key].Fill = ColorLifeStable;
+                }
+                else
                 {
                     Squares[entry.Key].Fill = brush;
                 }
@@ -481,7 +523,7 @@ namespace GameOfLife
 
             #region INFORMATION update
 
-            int amount = Amount.X * Amount.Y;
+            int amount = Board.Amount.X * Board.Amount.Y;
 
             LcellsCount = Lcells.Count();
 
@@ -496,6 +538,26 @@ namespace GameOfLife
             ScellsPercent = Math.Round(ScellsCount / (double)amount * 100, 1);
 
             #endregion
+        }
+
+        private void SetDead(IEnumerable<Coord2D> collection)
+        {
+            foreach (Coord2D entry in collection)
+            {
+                _ = Squares.TryGetValue(entry, out Rectangle rec);
+
+                rec.Fill = GolBrush.Dead;
+            }
+        }
+
+
+        private static void GenerationStop(Dictionary<Coord2D, Status>[] genMinus, DispatcherTimer timer)
+        {
+
+            if (genMinus[2].SequenceEqual(genMinus[0]))
+            {
+                timer.Stop();
+            }
         }
 
 
@@ -527,81 +589,21 @@ namespace GameOfLife
         }
 
 
-        private void SetDead(IEnumerable<Coord2D> collection)
+        private static Brush GetBrushFromStatus(Status status)
         {
-            foreach (Coord2D entry in collection)
-            {
-                _ = Squares.TryGetValue(entry, out Rectangle rec);
-
-                rec.Fill = ColorDead;
-            }
-        }
-
-        private void RecordGenerationAndSTop()
-        {
-
-            for (int i = GenMinus.Length - 1; i > 0; i--)
-            {
-
-                GenMinus[i].Clear();
-
-                foreach (KeyValuePair<Coord2D, Status> entry in GenMinus[i - 1])
-                {
-                    GenMinus[i].Add(entry.Key, entry.Value);
-                }
-            }
-
-
-            GenMinus[0].Clear();
-
-            foreach (KeyValuePair<Coord2D, Status> entry in GenOld)
-            {
-                GenMinus[0].Add(entry.Key, entry.Value);
-            }
-
-
-            if (GenMinus[2].SequenceEqual(GenMinus[0]))
-            {
-                dispatcherTimer.Stop();
-            }
-
-
-        }
-
-
-        private Brush GetBrushFromStatus(Status status)
-        {
-            //Brush brush;
-
-            //switch (status)
-            //{
-            //    case Status.Life:
-            //        brush = ColorLife;
-            //        break;
-            //    case Status.Surround:
-            //        brush = ColorSurround;
-            //        break;
-            //    default:
-            //        brush = ColorDead;
-            //        break;
-            //}
-
-            //return brush;
 
             switch (status)
             {
                 case Status.Life:
-                    return ColorLife;
+                    return GolBrush.Life;
                 case Status.Surround:
                     return ColorSurround;
                 case Status.Dead:
-                    return ColorDead;
+                    return GolBrush.Dead;
                 default:
-                    return ColorDead;
+                    return GolBrush.Dead;
             }
-
         }
-
 
     }
 }
