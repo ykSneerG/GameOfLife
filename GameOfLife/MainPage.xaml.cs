@@ -22,7 +22,6 @@ namespace GameOfLife
         private readonly DispatcherTimer dispatcherTimer = new DispatcherTimer();
 
 
-        //private Coord2D Amount = new Coord2D();
         private GolBoard Board = new GolBoard();
 
 
@@ -219,9 +218,10 @@ namespace GameOfLife
 
         public MainPage()
         {
+
             InitializeComponent();
 
-            dispatcherTimer.Interval = TimeSpan.FromMilliseconds(5);
+            dispatcherTimer.Interval = TimeSpan.FromMilliseconds(20);
             dispatcherTimer.Tick += TimerTick;
 
             for (int i = 0; i < GenMinus.Length; i++)
@@ -237,6 +237,7 @@ namespace GameOfLife
         {
             NextGeneration();
         }
+
 
         #region UI: BUTTON
 
@@ -254,11 +255,6 @@ namespace GameOfLife
 
             Board.SetBoardWidth((byte)(Playarea.ActualWidth / pxdistWidth));
             Board.SetBoardHeight((byte)(Playarea.ActualHeight / pxdistWidth));
-
-            //Board.Amount = new Coord2D(
-            //    (byte)(Playarea.ActualWidth / pxdistWidth),
-            //    (byte)(Playarea.ActualHeight / pxdistWidth)
-            //    );
 
 
             Info = $"Area: {Board.AmountOfCells} cells";
@@ -284,14 +280,12 @@ namespace GameOfLife
                     Canvas.SetTop(rect, y * pxdistWidth + distance);
                 }
             }
-
-            ElemTotal.Text = $"Total: {Board.AmountOfCells}";
         }
 
 
         private void BtnClear_Click(object sender, RoutedEventArgs e)
         {
-            SetDead(Squares.Keys.ToArray());
+            SetDead(Squares, Squares.Keys.ToArray());
 
             Generation = 0;
         }
@@ -319,13 +313,18 @@ namespace GameOfLife
 
         private void BtnPlay_Click(object sender, RoutedEventArgs e)
         {
+
             if (dispatcherTimer.IsEnabled)
             {
                 dispatcherTimer.Stop();
+
+                BtnPlay.Content = "PLAY";
             }
             else
             {
                 dispatcherTimer.Start();
+
+                BtnPlay.Content = "PAUSE";
             }
         }
 
@@ -381,29 +380,8 @@ namespace GameOfLife
 
             Generation++;
 
+            InitialGeneration();
 
-            if (Lcells.Count == 0)
-            {
-
-                GenStart.Clear();
-
-                foreach (KeyValuePair<Coord2D, Rectangle> entry in Squares)
-                {
-                    if (entry.Value.Fill == GolBrush.Life || entry.Value.Fill == ColorLifeStable)
-                    {
-                        _ = GenStart.TryAdd(entry.Key, Status.Life);
-                    }
-                    if (entry.Value.Fill == ColorSurround)
-                    {
-                        _ = GenStart.TryAdd(entry.Key, Status.Surround);
-                    }
-                }
-            }
-            else
-            {
-                GenStart = GolHelper.MergeLeft(Lcells, Scells);
-            }
-            
 
             GolHelper.Record(ref GenMinus, GenStart);
 
@@ -415,7 +393,64 @@ namespace GameOfLife
             FindSurroundingCells(Scells, Lcells.Keys);
 
 
+            HashSet<Coord2D> set = GenStart.Keys.ToHashSet();
+
+            GenStart = GolHelper.MergeLeft(Lcells, Scells);
+
+            set.SymmetricExceptWith(GenStart.Keys.ToArray());
+
+            SetDead(Squares, set);
+
+
             ColorizeGeneration();
+
+            UpdateInformation();
+        }
+
+
+        private void UpdateInformation()
+        {
+
+            int amount = Board.AmountOfCells;
+
+
+            LcellsCount = Lcells.Count();
+
+            LcellsPercent = GolHelper.FractionToPercentage(LcellsCount, amount);
+
+
+            DcellsCount = amount - LcellsCount;
+
+            DcellsPercent = GolHelper.FractionToPercentage(DcellsCount, amount);
+
+
+            ScellsCount = GenStart.Count(x => x.Value == Status.Surround);
+
+            ScellsPercent = GolHelper.FractionToPercentage(ScellsCount, amount);
+        }
+
+        private void InitialGeneration()
+        {
+
+            if (Lcells.Count == 0)
+            {
+
+                GenStart.Clear();
+
+
+                foreach (KeyValuePair<Coord2D, Rectangle> entry in Squares)
+                {
+                    if (entry.Value.Fill == GolBrush.Life || entry.Value.Fill == ColorLifeStable)
+                    {
+                        _ = GenStart.TryAdd(entry.Key, Status.Life);
+                    }
+
+                    if (entry.Value.Fill == ColorSurround)
+                    {
+                        _ = GenStart.TryAdd(entry.Key, Status.Surround);
+                    }
+                }
+            }
         }
 
 
@@ -455,7 +490,7 @@ namespace GameOfLife
                 }
 
 
-                Coord2D coord2D = NeighbourCell(Board.Amount, center, entry.Item1, entry.Item2);
+                Coord2D coord2D = GolBoard.NeighbourCell(Board.Amount, center, entry.Item1, entry.Item2);
 
                 if (Squares[coord2D].Fill == GolBrush.Life || Squares[coord2D].Fill == ColorLifeStable)
                 {
@@ -482,7 +517,7 @@ namespace GameOfLife
                 foreach (Tuple<sbyte, sbyte> nx in GolHelper.NextCells)
                 {
                     _ = surround.TryAdd(
-                            NeighbourCell(Board.Amount, center, nx.Item1, nx.Item2),
+                            GolBoard.NeighbourCell(Board.Amount, center, nx.Item1, nx.Item2),
                             Status.Surround
                             );
                 }
@@ -493,63 +528,32 @@ namespace GameOfLife
         private void ColorizeGeneration()
         {
 
-            SetDead(GenStart.Keys.ToArray());
-
-
-            Dictionary<Coord2D, Status> mergedCells = GolHelper.MergeLeft(Lcells, Scells);
-
-            foreach (KeyValuePair<Coord2D, Status> entry in mergedCells)
+            foreach (KeyValuePair<Coord2D, Status> entry in GenStart)
             {
-                
-                Brush brush = GetBrushFromStatus(entry.Value);
 
-                //if (Squares[entry.Key].Fill != brush)
-                //{
-                //    Squares[entry.Key].Fill = brush;
-                //}
+                _ = GenMinus[0].TryGetValue(entry.Key, out Status genMinus0Value);
 
-                _ = GenStart.TryGetValue(entry.Key, out Status statusOld);
-
-                if (statusOld == entry.Value && entry.Value == Status.Life)
-                {
-                    Squares[entry.Key].Fill = ColorLifeStable;
-                }
-                else
-                {
-                    Squares[entry.Key].Fill = brush;
-                }
+                Squares[entry.Key].Fill = (genMinus0Value == entry.Value && entry.Value == Status.Life) ? ColorLifeStable : GetBrushFromStatus(entry.Value);
             }
-
-
-            #region INFORMATION update
-
-            int amount = Board.Amount.X * Board.Amount.Y;
-
-            LcellsCount = Lcells.Count();
-
-            LcellsPercent = Math.Round(LcellsCount / (double)amount * 100, 1);
-
-            DcellsCount = amount - LcellsCount;
-
-            DcellsPercent = Math.Round(DcellsCount / (double)amount * 100, 1);
-
-            ScellsCount = mergedCells.Count(x => x.Value == Status.Surround);
-
-            ScellsPercent = Math.Round(ScellsCount / (double)amount * 100, 1);
-
-            #endregion
         }
 
-        private void SetDead(IEnumerable<Coord2D> collection)
+
+        #region STATIC HELPER
+
+
+        private static void SetDead(Dictionary<Coord2D, Rectangle> squares, IEnumerable<Coord2D> collection)
         {
+
             foreach (Coord2D entry in collection)
             {
-                _ = Squares.TryGetValue(entry, out Rectangle rec);
+                bool found = squares.TryGetValue(entry, out Rectangle rec);
 
-                rec.Fill = GolBrush.Dead;
+                if (found)
+                {
+                    rec.Fill = GolBrush.Dead;
+                }
             }
         }
-
 
         private static void GenerationStop(Dictionary<Coord2D, Status>[] genMinus, DispatcherTimer timer)
         {
@@ -559,35 +563,6 @@ namespace GameOfLife
                 timer.Stop();
             }
         }
-
-
-        private static Coord2D NeighbourCell(Coord2D amount, Coord2D center, sbyte nX, sbyte nY)
-        {
-
-            byte x = NeighbourCoordinate(center.X, nX, amount.X);
-
-            byte y = NeighbourCoordinate(center.Y, nY, amount.Y);
-
-            return new Coord2D(x, y);
-        }
-
-        private static byte NeighbourCoordinate(byte pt, sbyte dist, byte amount)
-        {
-            int ptdist = pt + dist;
-
-            if (ptdist >= amount)
-            {
-                ptdist = 0;
-            }
-
-            if (ptdist < 0)
-            {
-                ptdist = amount - 1;
-            }
-
-            return (byte)ptdist;
-        }
-
 
         private static Brush GetBrushFromStatus(Status status)
         {
@@ -605,5 +580,6 @@ namespace GameOfLife
             }
         }
 
+        #endregion
     }
 }

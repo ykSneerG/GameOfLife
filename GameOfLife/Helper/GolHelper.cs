@@ -7,26 +7,6 @@ namespace GameOfLife
     public enum Status { Life, Dead, Surround }
 
 
-    public struct Coord2D
-    {
-        public byte X;
-
-        public byte Y;
-
-        public Coord2D(byte x, byte y)
-        {
-            X = x;
-            Y = y;
-        }
-
-        public Coord2D(int x, int y)
-        {
-            X = (byte)x;
-            Y = (byte)y;
-        }
-    }
-
-
     public static class GolHelper
     {
 
@@ -60,6 +40,14 @@ namespace GameOfLife
             return mergedDict;
         }
 
+
+        /// <summary>
+        /// Stores a given dictonary at the first positon of an array an pushes all existing dictonaries.
+        /// </summary>
+        /// <typeparam name="TKey"></typeparam>
+        /// <typeparam name="TValue"></typeparam>
+        /// <param name="records">Array of Dictonaries.</param>
+        /// <param name="start">Dictonary to RECORD</param>
         public static void Record<TKey, TValue>(ref Dictionary<TKey, TValue>[] records, Dictionary<TKey, TValue> start)
         {
 
@@ -75,6 +63,12 @@ namespace GameOfLife
                 }
             }
         }
+
+        public static double FractionToPercentage(int nominator, int denominator)
+        {
+            return Math.Round(nominator / (double)denominator * 100, 1);
+        }
+
     }
 
 }

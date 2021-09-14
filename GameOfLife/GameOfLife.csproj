@@ -125,6 +125,7 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Helper\Coord2D.cs" />
     <Compile Include="Helper\GolBoard.cs" />
     <Compile Include="Helper\GolColor.cs" />
     <Compile Include="Helper\GolHelper.cs" />

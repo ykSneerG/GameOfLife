@@ -31,37 +31,6 @@ namespace GameOfLife
         }
 
 
-        //public List<Coord2D> RandomFill2(int percentage)
-        //{
-
-        //    if(percentage <= 0 || percentage >= 100)
-        //    {
-        //        percentage = 30;
-        //    }
-
-
-        //    List<Coord2D> randLife = new List<Coord2D>();
-
-        //    Random random = new Random();
-
-        //    for (byte x = 0; x < Amount.X; x++)
-        //    {
-        //        for (byte y = 0; y < Amount.Y; y++)
-        //        {
-        //            int rand = random.Next(0, 100);
-
-        //            if (rand <= percentage)
-        //            {
-        //                randLife.Add(new Coord2D(x, y));
-        //                //Squares[new Coord2D(x, y)].Fill = GolBrush.Life;
-        //            }
-        //        }
-        //    }
-
-        //    return randLife;
-        //}
-
-
         public IEnumerable<Coord2D> RandomCells(double percentage)
         {
 
@@ -89,5 +58,34 @@ namespace GameOfLife
             return randLife;
         }
 
+
+        public static Coord2D NeighbourCell(Coord2D amount, Coord2D center, sbyte nX, sbyte nY)
+        {
+
+            byte x = NeighbourCoordinate(center.X, nX, amount.X);
+
+            byte y = NeighbourCoordinate(center.Y, nY, amount.Y);
+
+            return new Coord2D(x, y);
+        }
+
+        public static byte NeighbourCoordinate(byte pt, sbyte dist, byte amount)
+        {
+
+            int ptdist = pt + dist;
+
+            if (ptdist >= amount)
+            {
+                ptdist = 0;
+            }
+            else if (ptdist < 0)
+            {
+                ptdist = amount - 1;
+            }
+
+            return (byte)ptdist;
+        }
+
     }
+
 }

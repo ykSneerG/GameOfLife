@@ -27,27 +27,16 @@
             
             <StackPanel Orientation="Horizontal">
                 <Slider x:Name="percentSlider" Width="120" Minimum="0" Maximum="100" Value="30"/>
-                <TextBlock Margin="10,0,0,0" Text="15" VerticalAlignment="Center" HorizontalAlignment="Right" ToolTipService.ToolTip="Cell width in pixel."></TextBlock>
+                <TextBlock Margin="10,0,0,0" Text="{Binding ElementName=percentSlider, Path=Value}" 
+                           VerticalAlignment="Center" HorizontalAlignment="Right" ToolTipService.ToolTip="Cell width in pixel."></TextBlock>
             </StackPanel>
-            
 
             <StackPanel Margin="0,10">
-                <TextBlock x:Name="ElemTotal" FontSize="14">Total</TextBlock>
-                <TextBlock Text="{Binding ElementName=Golpage, Path=Info, UpdateSourceTrigger=PropertyChanged, FallbackValue=info}" FontSize="14"/>
+                <!--<TextBlock FontSize="14">Total</TextBlock>-->
+                <!--<TextBlock FontSize="14" Text="{Binding ElementName=Golpage, Path=Board.Amount.X}">Total</TextBlock>-->
+                <TextBlock Text="{Binding ElementName=Golpage, Path=Info, UpdateSourceTrigger=PropertyChanged, FallbackValue=Info}" FontSize="14"/>
             </StackPanel>
 
-            
-            <Border Margin="0,10" BorderBrush="Black" BorderThickness="0.5">
-                <Grid>
-                    <StackPanel Margin="5">
-                        <TextBlock Height="30" FontWeight="Bold">Special Cell Color</TextBlock>
-                        <ToggleSwitch OffContent="Stable OFF" OnContent="Stable ON" Toggled="ToggleSwitchStable_Toggled" IsOn="False"/>
-                        <ToggleSwitch OffContent="Edge OFF" OnContent="Edge ON" Toggled="ToggleSwitchSurround_Toggled" IsOn="False"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            
             <Grid Margin="0,10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition></ColumnDefinition>
@@ -59,13 +48,28 @@
                     <RowDefinition Height="10"></RowDefinition>
                     <RowDefinition></RowDefinition>
                 </Grid.RowDefinitions>
-                
-                <Button Grid.Row="0" Grid.Column="0" Click="BtnClear_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">CLEAR</Button>
-                <Button Grid.Row="0" Grid.Column="2" Click="BtnFill_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">FILL</Button>
-                <Button Grid.Row="2" Grid.Column="0" Click="BtnPlay_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">PLAY</Button>
-                <Button Grid.Row="2" Grid.Column="2" Click="BtnNext_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">NEXT</Button>
+                <Grid.Resources>
+                    <Style TargetType="Button">
+                        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                        <Setter Property="VerticalAlignment" Value="Stretch"/>
+                    </Style>
+                </Grid.Resources>
+
+                <Button Grid.Row="0" Grid.Column="0" Click="BtnClear_Click">CLEAR</Button>
+                <Button Grid.Row="0" Grid.Column="2" Click="BtnFill_Click">FILL</Button>
+                <Button Grid.Row="2" Grid.Column="0" Click="BtnPlay_Click" Content="PLAY" x:Name="BtnPlay"/>
+                <Button Grid.Row="2" Grid.Column="2" Click="BtnNext_Click">NEXT</Button>
             </Grid>
 
+            <Border Margin="0,10" BorderBrush="Black" BorderThickness="0.5">
+                <Grid>
+                    <StackPanel Margin="5">
+                        <TextBlock Height="30" FontWeight="Bold">Special Cell Color</TextBlock>
+                        <ToggleSwitch OffContent="Stable OFF" OnContent="Stable ON" Toggled="ToggleSwitchStable_Toggled" IsOn="False"/>
+                        <ToggleSwitch OffContent="Edge OFF" OnContent="Edge ON" Toggled="ToggleSwitchSurround_Toggled" IsOn="False"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
 
             <StackPanel Margin="0,40">
                 <TextBlock FontSize="14">Generation</TextBlock>
@@ -114,9 +118,6 @@
 
             </Grid>
             
-
-
-
         </StackPanel>
 
         <Canvas Grid.Column="2" x:Name="Playarea"></Canvas>
