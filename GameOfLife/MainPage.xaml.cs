@@ -63,8 +63,20 @@ namespace GameOfLife
                 nameof(LcellsCount),
                 typeof(int),
                 typeof(MainPage),
-                new PropertyMetadata(default)
+                new PropertyMetadata(default, OnLcellsCountPropertyChanged)
                 );
+
+        private static void OnLcellsCountPropertyChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
+        {
+            MainPage myUserControl = dependencyObject as MainPage;
+
+            myUserControl.LcellsCountChanged(e);
+        }
+
+        private void LcellsCountChanged(DependencyPropertyChangedEventArgs e)
+        {
+            LcellsPercent = GolHelper.FractionToPercentage(LcellsCount, Board.AmountOfCells);
+        }
 
         #endregion
 
@@ -118,8 +130,20 @@ namespace GameOfLife
                 nameof(ScellsCount),
                 typeof(int),
                 typeof(MainPage),
-                new PropertyMetadata(default)
+                new PropertyMetadata(default, OnScellsCountPropertyChanged)
                 );
+
+        private static void OnScellsCountPropertyChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
+        {
+            MainPage myUserControl = dependencyObject as MainPage;
+
+            myUserControl.ScellsCountChanged(e);
+        }
+
+        private void ScellsCountChanged(DependencyPropertyChangedEventArgs e)
+        {
+            ScellsPercent = GolHelper.FractionToPercentage(ScellsCount, Board.AmountOfCells);
+        }
 
         #endregion
 
@@ -155,8 +179,20 @@ namespace GameOfLife
                 nameof(DcellsCount),
                 typeof(int),
                 typeof(MainPage),
-                new PropertyMetadata(default)
+                new PropertyMetadata(default, OnDcellsCountPropertyChanged)
                 );
+
+        private static void OnDcellsCountPropertyChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
+        {
+            MainPage myUserControl = dependencyObject as MainPage;
+
+            myUserControl.DcellsCountChanged(e);
+        }
+
+        private void DcellsCountChanged(DependencyPropertyChangedEventArgs e)
+        {
+            DcellsPercent = GolHelper.FractionToPercentage(DcellsCount, Board.AmountOfCells);
+        }
 
         #endregion
 
@@ -257,7 +293,7 @@ namespace GameOfLife
             Board.SetBoardHeight((byte)(Playarea.ActualHeight / pxdistWidth));
 
 
-            Info = $"Area: {Board.AmountOfCells} cells";
+            Info = $"Area: {Board.AmountOfCells} cells ({Board.Amount.X}*{Board.Amount.Y})";
 
 
             for (byte x = 0; x < Board.Amount.X; x++)
@@ -411,22 +447,11 @@ namespace GameOfLife
         private void UpdateInformation()
         {
 
-            int amount = Board.AmountOfCells;
-
-
             LcellsCount = Lcells.Count();
 
-            LcellsPercent = GolHelper.FractionToPercentage(LcellsCount, amount);
-
-
-            DcellsCount = amount - LcellsCount;
-
-            DcellsPercent = GolHelper.FractionToPercentage(DcellsCount, amount);
-
+            DcellsCount = Board.AmountOfCells - LcellsCount;
 
             ScellsCount = GenStart.Count(x => x.Value == Status.Surround);
-
-            ScellsPercent = GolHelper.FractionToPercentage(ScellsCount, amount);
         }
 
         private void InitialGeneration()
@@ -539,7 +564,6 @@ namespace GameOfLife
 
 
         #region STATIC HELPER
-
 
         private static void SetDead(Dictionary<Coord2D, Rectangle> squares, IEnumerable<Coord2D> collection)
         {
