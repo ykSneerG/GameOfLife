@@ -26,9 +26,10 @@
             </StackPanel>
             
             <StackPanel Orientation="Horizontal">
-                <Slider x:Name="percentSlider" Width="120" Minimum="0" Maximum="100" Value="30"/>
+                <Slider x:Name="percentSlider" Width="100" Minimum="0" Maximum="100" Value="30"/>
                 <TextBlock Margin="10,0,0,0" Text="{Binding ElementName=percentSlider, Path=Value}" 
                            VerticalAlignment="Center" HorizontalAlignment="Right" ToolTipService.ToolTip="Cell width in pixel."></TextBlock>
+                <TextBlock Margin="5,0,0,0" Text="%" VerticalAlignment="Center" HorizontalAlignment="Right"/>
             </StackPanel>
 
             <StackPanel Margin="0,10">

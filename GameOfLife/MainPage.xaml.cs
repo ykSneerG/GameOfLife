@@ -293,7 +293,7 @@ namespace GameOfLife
             Board.SetBoardHeight((byte)(Playarea.ActualHeight / pxdistWidth));
 
 
-            Info = $"Area: {Board.AmountOfCells} cells ({Board.Amount.X}*{Board.Amount.Y})";
+            Info = $"Cells: {Board.AmountOfCells} ({Board.Amount.X}*{Board.Amount.Y})";
 
 
             for (byte x = 0; x < Board.Amount.X; x++)
