@@ -7,7 +7,7 @@ Certainly, there are already various solutions for the implementation of the "Ga
 
 ## How it works
 Run the application, set the cell width in pixel -> SET, FILL and than PLAY.
-You can also paint your own figures by clicking inside the playboard
+You can also paint your own figures by clicking inside the playboard.
 
 ## Information
 The speed depends on your system and on the amount of cells, that are at LIFE (red) or marked as SURROUND (midgray).
